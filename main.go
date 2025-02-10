@@ -12,28 +12,29 @@ import (
 )
 
 //TODO: with flag change presntation to colon separated path
-//TODO: check why terinator is not bolding
 
 var (
-	shouldCount *bool
-	CommitID    string
+	shouldCount  *bool
+	CommitID     string
+	altPathPrint *bool
 )
 
 func main() {
 	shouldCount = flag.Bool("count", false, "Enable count mode: total number of leaves is printed instead of listed.")
-	help := flag.Bool("help", false, "Show this help. Halts execution.")
 	flag.BoolVar(shouldCount, "c", false, "Shorthand for --count")
-	flag.Parse()
-	if *help {
-		//multiline string
+	altPathPrint = flag.Bool("altPrint", false, "Do not print tree, print all leves as paths instead.")
+	flag.BoolVar(altPathPrint, "p", false, "Shorthand for --altPrint")
+	flag.Usage = func() {
 		x := "version " + CommitID + "\n" + `Usage: monkey [OPTIONS] file1 file2 ...
 
 Options:
 `
-		fmt.Println(x)
-		flag.Usage()
+		fmt.Fprintln(os.Stderr, x)
+		flag.PrintDefaults()
 		os.Exit(0)
 	}
+	flag.Parse()
+
 	if len(flag.Args()) == 0 {
 		fmt.Println("Please enter a file name")
 		fmt.Println("Usage: monkey [OPTIONS] file1 file2 ...")
