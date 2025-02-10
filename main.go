@@ -6,42 +6,56 @@ import (
 	"os"
 	"sync"
 
+	"github.com/jxskiss/mcli"
 	"github.com/pydpll/errorutils"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/bbolt"
 )
 
-//TODO: with flag change presntation to colon separated path
-
 var (
-	shouldCount  *bool
-	CommitID     string
-	altPathPrint *bool
+	CommitID    string
+	worker      workers
+	shouldCount *bool
+	files       []string
 )
 
+type workers func(db *bbolt.DB, KEYS_ch <-chan string, RETURN_ch chan<- string, wg *sync.WaitGroup)
+
 func main() {
-	shouldCount = flag.Bool("count", false, "Enable count mode: total number of leaves is printed instead of listed.")
-	flag.BoolVar(shouldCount, "c", false, "Shorthand for --count")
-	altPathPrint = flag.Bool("altPrint", false, "Do not print tree, print all leves as paths instead.")
-	flag.BoolVar(altPathPrint, "p", false, "Shorthand for --altPrint")
-	flag.Usage = func() {
-		x := "version " + CommitID + "\n" + `Usage: monkey [OPTIONS] file1 file2 ...
-
-Options:
-`
-		fmt.Fprintln(os.Stderr, x)
-		flag.PrintDefaults()
-		os.Exit(0)
+	var Args struct {
+		Count    bool `cli:"-c, --count, change tree view to not show leaves"`
+		AltPrint bool `cli:"-p, --altPrint, change tree view to colon separated path"`
 	}
-	flag.Parse()
+	// those that start with flags
+	flags := []string{}
+	// those that start with files
+	for _, arg := range os.Args[1:] {
+		if arg[0] == '-' {
+			flags = append(flags, arg)
+		} else {
+			files = append(files, arg)
+		}
+	}
+	mcli.AddHelp()
+	mcli.AddRoot(readFiles)
+	shouldCount = &Args.Count
+	_, err := mcli.Parse(&Args, mcli.WithErrorHandling(flag.ContinueOnError), mcli.WithArgs(flags))
+	errorutils.ExitOnFail(err)
+	worker = treeWorker
+	if Args.AltPrint {
+		worker = trailWorker
+	}
+	mcli.Run()
+}
 
-	if len(flag.Args()) == 0 {
+func readFiles() {
+	if len(files) == 0 {
 		fmt.Println("Please enter a file name")
-		fmt.Println("Usage: monkey [OPTIONS] file1 file2 ...")
+		mcli.PrintHelp()
 		os.Exit(1)
 	}
-	for _, filex := range flag.Args() {
-		exploreFile(filex)
+	for _, file := range files {
+		exploreFile(file)
 	}
 }
 
@@ -60,7 +74,7 @@ func exploreFile(name string) {
 	var wg sync.WaitGroup
 	for range 2 {
 		wg.Add(1)
-		go treeWorker(db, TOPKEY_ch, RETURN_ch, &wg)
+		go worker(db, TOPKEY_ch, RETURN_ch, &wg)
 	}
 
 	go func() {
@@ -121,6 +135,36 @@ func treeWorker(db *bbolt.DB, KEYS_ch <-chan string, RETURN_ch chan<- string, wg
 				key += fmt.Sprintf(" (%d total leaves)", c)
 			}
 			RETURN_ch <- fmt.Sprintf("%s:\n%s", key, o)
+			return nil
+		})
+	}
+}
+
+func trail(b *bbolt.Bucket, prefix string) string {
+	var out string
+	b.ForEach(func(k, v []byte) error {
+		if v != nil {
+			out += fmt.Sprintf("%s:%s\n", prefix, colorize(string(k), "1"))
+		} else {
+			subBucket := b.Bucket(k)
+			out = trail(subBucket, prefix+":"+string(k))
+		}
+		return nil
+	})
+	return out
+}
+
+func trailWorker(db *bbolt.DB, KEYS_ch <-chan string, RETURN_ch chan<- string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for key := range KEYS_ch {
+		_ = db.View(func(tx *bbolt.Tx) error {
+			b := tx.Bucket([]byte(key))
+			if b == nil {
+				RETURN_ch <- fmt.Sprintf("Bucket %s not found", key)
+				return nil
+			}
+
+			RETURN_ch <- trail(b, key)
 			return nil
 		})
 	}
