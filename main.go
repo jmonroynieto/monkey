@@ -11,17 +11,36 @@ import (
 	"go.etcd.io/bbolt"
 )
 
-var( 
+//TODO: with flag change presntation to colon separated path
+//TODO: check why terinator is not bolding
+
+var (
 	shouldCount *bool
-	CommitID string
+	CommitID    string
 )
 
 func main() {
-	shouldCount = flag.Bool("count", false, "Enable count mode")
+	shouldCount = flag.Bool("count", false, "Enable count mode: total number of leaves is printed instead of listed.")
+	help := flag.Bool("help", false, "Show this help. Halts execution.")
 	flag.BoolVar(shouldCount, "c", false, "Shorthand for --count")
 	flag.Parse()
+	if *help {
+		//multiline string
+		x := "version " + CommitID + "\n" + `Usage: monkey [OPTIONS] file1 file2 ...
+
+Options:
+`
+		fmt.Println(x)
+		flag.Usage()
+		os.Exit(0)
+	}
+	if len(flag.Args()) == 0 {
+		fmt.Println("Please enter a file name")
+		fmt.Println("Usage: monkey [OPTIONS] file1 file2 ...")
+		os.Exit(1)
+	}
 	for _, filex := range flag.Args() {
-  		exploreFile(filex)
+		exploreFile(filex)
 	}
 }
 
@@ -70,7 +89,7 @@ func tree(b *bbolt.Bucket, prefix string) (string, int) {
 		if v != nil {
 			totalCount++
 			if !*shouldCount {
-				out += fmt.Sprintf("%s└── %s\n", prefix, colorize(string(k), "leaf"))
+				out += fmt.Sprintf("%s└── %s\n", prefix, colorize(string(k), "1"))
 			}
 		} else {
 			subBucket := b.Bucket(k)
