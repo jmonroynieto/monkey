@@ -19,7 +19,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
-            "args": ["-p", "testdata/8e6a.bbolt", "testdata/any0.bbolt"],
+            "args": ["-p", "testdata/8e6a.bbolt"],
         },
         {
             "name": "usage test",
@@ -28,6 +28,23 @@
             "mode": "auto",
             "program": "${workspaceFolder}",
             "args": ["-h"],
+        },
+        //monkeybusiness
+        {
+            "name": "monkey grasp",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": ["grasp","hello@world"],
+        },
+         {
+            "name": "monkey deliver",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": ["deliver","hello"],
         },
     ]
 }
