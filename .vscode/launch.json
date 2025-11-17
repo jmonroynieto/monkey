@@ -44,7 +44,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
-            "args": ["deliver","hello"],
+            "args": ["deliver","GUMSELECTOPTS"],
         },
     ]
 }

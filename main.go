@@ -65,6 +65,13 @@ var app = cli.Command{
 			ArgsUsage:          "<key1> <key2> ... [file.bbolt]",
 			CustomHelpTemplate: monkeyBusinessHelp,
 			Version:            CommitID,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:        "newlines",
+					Usage:       "separate results with a newline per key",
+					Aliases:     []string{"l"},
+				},
+			},
 		},
 		{
 			Name:               "hurl",

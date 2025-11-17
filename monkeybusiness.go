@@ -46,7 +46,7 @@ func deliver(ctx context.Context, cmd *cli.Command) error {
 	keys, location := argsMonkeyBusiness(cmd, noFileNoService, parseLoners)
 	var values []string
 	access, err := bbolt.Open(location, 0o600, nil)
-	errorutils.ExitOnFail(err, errorutils.WithMsg("monkey's isn't playing games at "+location))
+	errorutils.ExitOnFail(err, errorutils.WithMsg("monkey isn't playing games at "+location))
 	err = access.View(func(tx *bbolt.Tx) error {
 		for k := range keys {
 			b := tx.Bucket([]byte{1})
@@ -63,7 +63,11 @@ func deliver(ctx context.Context, cmd *cli.Command) error {
 		return nil
 	})
 	errorutils.ExitOnFail(err)
-	fmt.Print(strings.Join(values, "\n"))
+	separator := " "
+	if cmd.Bool("newlines") {
+		separator = "\n"
+	}
+	fmt.Print(strings.Join(values, separator) + "\n")
 	return nil
 }
 
